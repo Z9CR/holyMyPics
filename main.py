@@ -1,6 +1,7 @@
 import utils.fileworks as fw
 import utils.database as db
 import sys
+import utils.slots as slots
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -30,16 +31,61 @@ splitter.addWidget(imgViewer)
 #:filterFrame: 下半边文件筛选器
 filterFrame = QWidget()
 bottom_layout = QVBoxLayout(filterFrame)
-# 分区
+# :filterFrame:分区
 horizontal_splitter = QSplitter(Qt.Horizontal)
 horizontal_splitter.setChildrenCollapsible(False)
-# 左半边
+# :filterFrame:左半边
 filterLeft = QWidget()
 left_layout = QVBoxLayout(filterLeft)
+# 标签输入行（水平布局）
+tag_input_layout = QHBoxLayout()
+# 标签输入框
+tag_input = QLineEdit()
+tag_input.setPlaceholderText("输入标签")
+tag_input_layout.addWidget(tag_input)
+# 添加标签按钮
+add_tag_btn = QPushButton("添加")
+add_tag_btn.clicked.connect(  # 连接槽函数
+    lambda: slots.on_add_tag_clicked(tag_input, tag_list_widget)
+)
+tag_input_layout.addWidget(add_tag_btn)
+# 移除最后一个标签按钮
+remove_tag_btn = QPushButton("移除最后")
+remove_tag_btn.clicked.connect(lambda: slots.on_remove_tag_clicked(tag_list_widget))
+tag_input_layout.addWidget(remove_tag_btn)
+# tag输入模块完成
+left_layout.addLayout(tag_input_layout)
+# 标签显示区域
+left_layout.addWidget(QLabel("已添加的标签:"))
+# 用于显示已添加标签的列表
+tag_list_widget = QListWidget()
+tag_list_widget.setMaximumHeight(150)  # 限制高度，避免占用太多空间
+left_layout.addWidget(tag_list_widget)
+# 添加弹性空间，让组件靠上排列
+left_layout.addStretch()
+# 左半边子组件加入布局
 horizontal_splitter.addWidget(filterLeft)
-# 右半边
+# :filterFrame:右半边
 filterRight = QWidget()
 right_layout = QVBoxLayout(filterRight)
+# 按昵称搜索
+nickname_input = QLineEdit()
+nickname_input.setPlaceholderText("输入昵称...")
+right_layout.addWidget(nickname_input)
+# 搜索按钮
+search_btn = QPushButton("搜索")
+# 连接槽函数
+search_btn.clicked.connect(
+    lambda: slots.on_search_clicked(nickname_input, result_label)
+)
+right_layout.addWidget(search_btn)
+# 显示找到的文件数量的标签
+result_label = QLabel("找到 0 个文件")
+result_label.setStyleSheet("font-weight: bold; color: #2ecc71;")  # 可选样式
+right_layout.addWidget(result_label)
+# 添加弹性空间，让组件靠上排列
+right_layout.addStretch()
+# 子组件加入布局
 horizontal_splitter.addWidget(filterRight)
 # 把水平分割器添加到 filterFrame 的布局中
 bottom_layout.addWidget(horizontal_splitter)
@@ -47,6 +93,8 @@ splitter.addWidget(filterFrame)
 # 将分割器设置为主窗口的布局
 layout = QVBoxLayout(mainwindow)
 layout.addWidget(splitter)
+# 设置分割器布局
+splitter.setSizes([480, 320])  # 上半500px，下半150px
 
 
 def main():
