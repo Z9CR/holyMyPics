@@ -64,6 +64,23 @@ def fetchByTag(tags: List[str]) -> List[str]:
     return [row[0] for row in rows]
 
 
+def fetchAll() -> List[str]:
+    """
+    :return: 所有数据库里的所有hash值
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT hash FROM files")
+        res = cursor.fetchall()
+        return res
+    except Exception as e:
+        print(f"遇到错误{e}")
+        return
+    finally:
+        conn.close()
+
+
 def bHashInDB(hash: str) -> bool:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()

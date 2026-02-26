@@ -1,5 +1,9 @@
+import sqlite3
+from typing import List
 from PySide6.QtWidgets import QListWidget, QLabel, QLineEdit
 from PySide6.QtCore import Qt
+
+DB_PATH = "pics.db"
 
 
 def on_add_tag_clicked(tag_input: QLineEdit, tag_list_widget: QListWidget):
@@ -24,5 +28,76 @@ def on_remove_tag_clicked(tag_list_widget: QListWidget):
     tag_list_widget.takeItem(tag_list_widget.count() - 1)
 
 
-def on_search_clicked(nickname_input: QLineEdit, result_label: QLabel):
-    print("search按钮被点击，接收到")
+def _QListWidgetToList(qlistwidget: QListWidget) -> List[str]:
+    ret = []
+    for i in range(qlistwidget.count()):
+        ret.append(qlistwidget.item(i).text())
+    return ret
+
+
+def on_search_clicked(
+    tag_list_widget: QListWidget, nickname_input: QLineEdit, result_label: QLabel
+) -> List[str]:
+    print("search按钮被点击")
+    # 从widget获取值
+    # 昵称
+    nickname = nickname_input.text()
+    # 标签
+    tags = _QListWidgetToList(tag_list_widget)
+    # :result_label:是用来显示的，不用转换
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    storage_names = []
+    try:
+        if tags and nickname:
+            # 既有标签又有昵称：需要同时匹配
+            placeholders = ",".join(["?"] * len(tags))
+            query = f"""
+                SELECT storageName
+                FROM files f
+                WHERE nickname = ? 
+                AND EXISTS (
+                    SELECT 1
+                    FROM json_each(f.tags) AS tag
+                    WHERE tag.value IN ({placeholders})
+                    GROUP BY f.hash
+                    HAVING COUNT(DISTINCT tag.value) = ?
+                )
+            """
+            cursor.execute(query, [nickname] + tags + [len(tags)])
+        elif tags and not nickname:
+            # 只有标签，没有昵称
+            placeholders = ",".join(["?"] * len(tags))
+            query = f"""
+                SELECT storageName
+                FROM files
+                WHERE hash IN (
+                    SELECT f.hash
+                    FROM files f, json_each(f.tags) AS tag
+                    WHERE tag.value IN ({placeholders})
+                    GROUP BY f.hash
+                    HAVING COUNT(DISTINCT tag.value) = ?
+                )
+            """
+            cursor.execute(query, tags + [len(tags)])
+        elif not tags and nickname:
+            # 只有昵称，没有标签
+            query = "SELECT storageName FROM files WHERE nickname = ?"
+            cursor.execute(query, [nickname])
+        else:
+            # 既没有标签也没有昵称：返回所有文件
+            query = "SELECT storageName FROM files"
+            cursor.execute(query)
+        # 获取所有匹配的 storageName
+        rows = cursor.fetchall()
+        storage_names = [row[0] for row in rows]
+        # 更新结果显示标签
+        result_label.setText(f"找到 {len(storage_names)} 个文件")
+        print(f"找到 {len(storage_names)} 个文件: {storage_names}")
+    except Exception as e:
+        print(f"搜索时出错: {e}")
+        result_label.setText("搜索出错")
+    finally:
+        conn.close()
+    print(f"~~~获取到的文件\n{storage_names}\n~~~")
+    return storage_names

@@ -76,7 +76,7 @@ right_layout.addWidget(nickname_input)
 search_btn = QPushButton("搜索")
 # 连接槽函数
 search_btn.clicked.connect(
-    lambda: slots.on_search_clicked(nickname_input, result_label)
+    lambda: slots.on_search_clicked(tag_list_widget, nickname_input, result_label)
 )
 right_layout.addWidget(search_btn)
 # 显示找到的文件数量的标签
