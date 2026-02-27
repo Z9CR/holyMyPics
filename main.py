@@ -2,6 +2,9 @@ import utils.fileworks as fw
 import utils.database as db
 import sys
 import utils.slots as slots
+import sqlite3
+from PIL import Image, ImageQt
+from utils.widgets import *
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -12,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QListWidget,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt
 
@@ -27,6 +31,15 @@ splitter.setChildrenCollapsible(False)  # 防止子窗口被折叠到看不见
 #:imgViewer: 上半边文件预览器
 imgViewer = QWidget()
 top_layout = QVBoxLayout(imgViewer)
+# 创建滚动区域
+scroll_area = QScrollArea()
+scroll_area.setWidgetResizable(True)
+scroll_area.setAlignment(Qt.AlignCenter)
+# 创建 ImageViewer 作为容器
+container = ImageViewer(TARGET_DIR)
+scroll_area.setWidget(container)
+top_layout.addWidget(scroll_area)
+#:imgViewer:加入布局
 splitter.addWidget(imgViewer)
 #:filterFrame: 下半边文件筛选器
 filterFrame = QWidget()
@@ -74,10 +87,26 @@ nickname_input.setPlaceholderText("输入昵称...")
 right_layout.addWidget(nickname_input)
 # 搜索按钮
 search_btn = QPushButton("搜索")
+
+
+# 迫于跨包，在main.py里实现按钮的搜索逻辑
+def _on_search():
+    hashs = slots.on_search_clicked(tag_list_widget, nickname_input, result_label)
+    # 清空当前预览
+    container.clear_images()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    for hashKey in hashs:
+        cursor.execute("SELECT * FROM files WHERE hash = ?", (hashKey,))
+        searchResult = cursor.fetchone()
+        # searchResult是以(hash, storageName, nickname, tags)格式的元组
+        # tags是一个json格式的数组
+        container.add_image(searchResult[0], searchResult[1], searchResult[2])
+    conn.close()
+
+
 # 连接槽函数
-search_btn.clicked.connect(
-    lambda: slots.on_search_clicked(tag_list_widget, nickname_input, result_label)
-)
+search_btn.clicked.connect(lambda: _on_search())
 right_layout.addWidget(search_btn)
 # 显示找到的文件数量的标签
 result_label = QLabel("找到 0 个文件")
