@@ -1,6 +1,6 @@
 import os
 from PIL import Image, ImageQt
-from PySide6.QtWidgets import QLabel, QWidget, QGridLayout
+from PySide6.QtWidgets import QLabel, QWidget, QGridLayout, QMainWindow
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from typing import List
@@ -11,8 +11,16 @@ THUMBNAIL_SIZE = 128
 class ImageLabel(QLabel):
     """可点击的图片标签"""
 
-    def __init__(self, file_hash: str, nickname: str, storage_name: str, parent=None):
+    def __init__(
+        self,
+        file_hash: str,
+        nickname: str,
+        storage_name: str,
+        mainwindow: QMainWindow,
+        parent=None,
+    ):
         super().__init__(parent)
+        self.mainwindow = mainwindow
         self.file_hash = file_hash
         self.nickname = nickname
         self.storage_name = storage_name
@@ -58,15 +66,18 @@ class ImageLabel(QLabel):
             # 发出信号，但这里我们通过回调函数处理
             from utils.slots import on_image_clicked
 
-            on_image_clicked(self.file_hash, self.nickname, self.storage_name)
+            on_image_clicked(
+                self.mainwindow, self.file_hash, self.nickname, self.storage_name
+            )
         super().mousePressEvent(event)
 
 
 class ImageViewer(QWidget):
     """图片查看器，使用网格布局自动换行"""
 
-    def __init__(self, target_dir: str, parent=None):
+    def __init__(self, target_dir: str, mainwindow: QMainWindow, parent=None):
         super().__init__(parent)
+        self.mainwindow = mainwindow
         self.target_dir = target_dir
         self.image_labels = []  # 保存所有图片标签
         self.cols = 3
@@ -80,7 +91,7 @@ class ImageViewer(QWidget):
         image_path = os.path.join(self.target_dir, storage_name)
 
         # 创建图片标签
-        label = ImageLabel(file_hash, nickname, storage_name)
+        label = ImageLabel(file_hash, nickname, storage_name, self.mainwindow)
 
         # 加载图片
         if not label.load_image(image_path):

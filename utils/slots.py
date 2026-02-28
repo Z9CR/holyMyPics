@@ -1,4 +1,5 @@
 import sqlite3
+import os
 import json
 import pyperclip
 from typing import List
@@ -15,10 +16,12 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
-from utils.widgets import *
+from PySide6.QtGui import QFont, QPixmap
+from PIL import Image, ImageQt
+from utils.widgets import ImageViewer
 
 DB_PATH = "pics.db"
+TARGET_DIR = "pics"
 
 
 def on_add_tag_clicked(tag_input: QLineEdit, tag_list_widget: QListWidget):
@@ -243,7 +246,50 @@ def on_show_tags_clicked(
     tagViewWindow.show()
 
 
-def on_image_clicked(file_hash: str, nickname: str, storage_name: str):
+def on_image_clicked(
+    mainwindow: QMainWindow, file_hash: str, nickname: str, storage_name: str
+):
     """图片点击事件的槽函数"""
     print(f"图片被点击: hash={file_hash}, nickname={nickname}, storage={storage_name}")
     # TODO: 弹出详情窗口
+    imgInfoWindow = QWidget()
+    # 将imgInfoWindow作为mainwindow的成员以防止gc
+    mainwindow.imgInfoWindow = imgInfoWindow
+    # 左图片右信息
+    imgInfoWindowLayout = QHBoxLayout()
+    imgLabel = QLabel()
+    imgLabel.setFixedSize(360, 360)  # 固定显示区域
+    imgLabel.setAlignment(Qt.AlignCenter)
+    image_path = os.path.join("pics", storage_name)
+    try:
+        pil_image = Image.open(image_path)
+        original_width, original_height = pil_image.size
+
+        # 计算缩放尺寸：使长边缩放到 360
+        if original_width >= original_height:
+            # 横图或正方形：宽度为长边
+            new_width = 360
+            new_height = int(original_height * 360 / original_width)
+        else:
+            # 竖图：高度为长边
+            new_height = 360
+            new_width = int(original_width * 360 / original_height)
+
+        # 使用高质量缩放
+        pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        qimage = ImageQt.ImageQt(pil_image)
+        pixmap = QPixmap.fromImage(qimage)
+        imgLabel.setPixmap(pixmap)
+    except Exception as e:
+        print(f"加载图片失败: {e}")
+        imgLabel.setText("无法加载图片")
+
+    imgInfoWindowLayout.addWidget(imgLabel)
+    # :右:
+    imgInfoWindowRight = QWidget()
+
+    # :右: 加入布局
+    imgInfoWindowLayout.addWidget(imgInfoWindowRight)
+    # show
+    imgInfoWindow.setLayout(imgInfoWindowLayout)
+    imgInfoWindow.show()

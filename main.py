@@ -1,9 +1,8 @@
-import utils.fileworks as fw
 import utils.database as db
 import sys
 import utils.slots as slots
 import sqlite3
-from utils.widgets import *
+from utils.widgets import ImageViewer
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -36,7 +35,7 @@ scroll_area = QScrollArea()
 scroll_area.setWidgetResizable(True)
 scroll_area.setAlignment(Qt.AlignCenter)
 # 创建 ImageViewer 作为容器
-container = ImageViewer(TARGET_DIR)
+container = ImageViewer(TARGET_DIR, mainwindow)
 scroll_area.setWidget(container)
 top_layout.addWidget(scroll_area)
 #:imgViewer:加入布局
