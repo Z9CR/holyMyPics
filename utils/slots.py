@@ -264,7 +264,6 @@ def on_image_clicked(
     try:
         pil_image = Image.open(image_path)
         original_width, original_height = pil_image.size
-
         # 计算缩放尺寸：使长边缩放到 360
         if original_width >= original_height:
             # 横图或正方形：宽度为长边
@@ -274,7 +273,6 @@ def on_image_clicked(
             # 竖图：高度为长边
             new_height = 360
             new_width = int(original_width * 360 / original_height)
-
         # 使用高质量缩放
         pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         qimage = ImageQt.ImageQt(pil_image)
@@ -287,7 +285,53 @@ def on_image_clicked(
     imgInfoWindowLayout.addWidget(imgLabel)
     # :右:
     imgInfoWindowRight = QWidget()
+    ##structure of imgInfoWindowRight:
+    # space 5%vh
+    #   nickname: QLineEdit + submit: QPushButton; 20% of vh
+    #   tags: QLineEdit + submit: QPushButton;     40% of vh
+    #   pathToFile: QLabel;                        10% of vh
+    #   hash: QLabel;                              10% of vh
+    #   size: QLabel;                              10$ of vh
+    # space 5%vh
+    imgInfoWindowRightLayout = QVBoxLayout()
+    # :右: nicknameArea
+    nicknameArea = QWidget()
+    nicknameAreaLayout = QHBoxLayout()
+    nicknameArea.setLayout(nicknameAreaLayout)
+    nicknameModifier = QLineEdit()
+    nicknameModifier.setText(nickname)
+    nicknameModifier.setPlaceholderText("输入新的名称")
+    nicknameModifierSubmiter = QPushButton("提交")
 
+    def on_nicknameModifierSubmiter_clicked(file_hash: str, newNickname: str):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
+            oldProperties = cursor.fetchone()
+            # oldProperties: (hash,  storageName, nickname, tagsJson)
+            cursor.execute("DELETE FROM files WHERE hash = ?", (file_hash,))
+            cursor.execute(
+                "INSERT INTO files (hash, storageName, nickname, tags) VALUES (?, ?, ?, ?)",
+                (oldProperties[0], oldProperties[1], newNickname, oldProperties[3]),
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"在更改名称时遇到问题:\n{e}")
+            raise
+        finally:
+            conn.close()
+
+    nicknameModifierSubmiter.clicked.connect(
+        lambda: on_nicknameModifierSubmiter_clicked(file_hash, nicknameModifier.text())
+    )
+    # 加入昵称输入组件到区域内
+    nicknameAreaLayout.addWidget(nicknameModifier)
+    nicknameAreaLayout.addWidget(nicknameModifierSubmiter)
+    # :右: 设置布局
+    imgInfoWindowRight.setLayout(imgInfoWindowRightLayout)
+    # :右: 加入组件
+    imgInfoWindowRightLayout.addWidget(nicknameArea)
     # :右: 加入布局
     imgInfoWindowLayout.addWidget(imgInfoWindowRight)
     # show
