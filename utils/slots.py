@@ -286,18 +286,19 @@ def on_image_clicked(
     # :右:
     imgInfoWindowRight = QWidget()
     ##structure of imgInfoWindowRight:
-    # space 5%vh
-    #   nickname: QLineEdit + submit: QPushButton; 20% of vh
-    #   tags: QLineEdit + submit: QPushButton;     40% of vh
-    #   pathToFile: QLabel;                        10% of vh
+    #   nickname: QLineEdit + submit: QPushButton; 20% of vh !DONE
+    #   tags: QLineEdit + submit: QPushButton;     40% of vh !DONE
+    #   pathToFile: QLabel + copy: QPushButton;    10% of vh
     #   hash: QLabel;                              10% of vh
-    #   size: QLabel;                              10$ of vh
-    # space 5%vh
+    #   size: QLabel;                              10% of vh
+    #   Finish: QPushButton;按下退出窗口           10% of vh
     imgInfoWindowRightLayout = QVBoxLayout()
     # :右: nicknameArea
     nicknameArea = QWidget()
     nicknameAreaLayout = QHBoxLayout()
     nicknameArea.setLayout(nicknameAreaLayout)
+
+    nicknameHinter = QLabel("更改名称")
     nicknameModifier = QLineEdit()
     nicknameModifier.setText(nickname)
     nicknameModifier.setPlaceholderText("输入新的名称")
@@ -326,12 +327,98 @@ def on_image_clicked(
         lambda: on_nicknameModifierSubmiter_clicked(file_hash, nicknameModifier.text())
     )
     # 加入昵称输入组件到区域内
+    nicknameAreaLayout.addWidget(nicknameHinter)
     nicknameAreaLayout.addWidget(nicknameModifier)
     nicknameAreaLayout.addWidget(nicknameModifierSubmiter)
+    # :右: tagsArea
+    tagsArea = QWidget()
+    tagsAreaLayout = QHBoxLayout()
+    tagsArea.setLayout(tagsAreaLayout)
+    # :右: tagsArea组件
+    tagsHinter = QLabel("更改标签")
+    tagsModifier = QLineEdit()
+    tagsModifier.setPlaceholderText("输入新的标签, 以','分割")
+    try:
+        _tmpConn = sqlite3.connect(DB_PATH)
+        _tmpCursor = _tmpConn.cursor()
+        _tmpCursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
+        _tmpJsonTag = _tmpCursor.fetchone()[3]
+        _tmpTagsList = json.loads(_tmpJsonTag)
+        if not _tmpTagsList:
+            raise
+        tagsStr = ""
+        for t in _tmpTagsList:
+            tagsStr += t
+            tagsStr += ","
+        tagsStr = tagsStr[:-1]
+        print(tagsStr)
+        tagsModifier.setText(tagsStr)
+    except Exception as e:
+        print(f"获取tags遇到错误:\n{e}")
+    finally:
+        _tmpConn.close()
+    tagsModifierSubmiter = QPushButton("提交")
+
+    def on_tagsModifierSubmiter_clicked(file_hash: str, newTags: str):
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
+            oldProperties = cursor.fetchone()
+            # oldProperties: (hash,  storageName, nickname, tagsJson)
+            cursor.execute("DELETE FROM files WHERE hash = ?", (file_hash,))
+            # 去除" "
+            if " " in newTags:
+                newTags = newTags.replace(" ", "")
+            newTagsList = newTags.split(",")
+            newTagsJson = json.dumps(newTagsList)
+            cursor.execute(
+                "INSERT INTO files (hash, storageName, nickname, tags) VALUES (?, ?, ?, ?)",
+                (oldProperties[0], oldProperties[1], oldProperties[2], newTagsJson),
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"更改标签时遇到问题:\n{e}")
+        finally:
+            conn.close()
+
+    tagsModifierSubmiter.clicked.connect(
+        lambda: on_tagsModifierSubmiter_clicked(file_hash, tagsModifier.text())
+    )
+    # :tagsArea: 加入组件
+    tagsAreaLayout.addWidget(tagsHinter)
+    tagsAreaLayout.addWidget(tagsModifier)
+    tagsAreaLayout.addWidget(tagsModifierSubmiter)
+    # :pathToFileArea:
+    pathToFileArea = QWidget()
+    pathToFileAreaLayout = QHBoxLayout()
+    pathToFileArea.setLayout(pathToFileAreaLayout)
+    # 获取路径
+    filePath = ""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
+        _path = cursor.fetchone()[1]
+        filePath = os.path.abspath(os.path.join(TARGET_DIR, _path))
+    except Exception as e:
+        print(f"获取路径失败:\n{e}")
+    finally:
+        conn.close()
+    pathToFileHinter = QLabel("文件路径")
+    pathLabel = QLabel(filePath)
+    copyPathBtn = QPushButton("复制")
+    copyPathBtn.clicked.connect(lambda: pyperclip.copy(filePath))
+    # :pathToFileArea: addWidget
+    pathToFileAreaLayout.addWidget(pathToFileHinter)
+    pathToFileAreaLayout.addWidget(pathLabel)
+    pathToFileAreaLayout.addWidget(copyPathBtn)
+    # 加入组件到布局
+    imgInfoWindowRightLayout.addWidget(nicknameArea)
+    imgInfoWindowRightLayout.addWidget(tagsArea)
+    imgInfoWindowRightLayout.addWidget(pathToFileArea)
     # :右: 设置布局
     imgInfoWindowRight.setLayout(imgInfoWindowRightLayout)
-    # :右: 加入组件
-    imgInfoWindowRightLayout.addWidget(nicknameArea)
     # :右: 加入布局
     imgInfoWindowLayout.addWidget(imgInfoWindowRight)
     # show
