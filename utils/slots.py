@@ -142,11 +142,9 @@ def on_show_tags_clicked(mainwindow: QMainWindow):
     layout = QVBoxLayout()
     tagViewWindow.setLayout(layout)
     # 检索器
-    filterArea = QWidget()
-    filtersLayout = QHBoxLayout()
     tagsFilterInput = QLineEdit()
 
-    # TODO: 为tagsFIlterInput添加placehover和实时输入搜索
+    # 为tagsFIlterInput添加placehover和实时输入搜索
     def _tag_refresh():
         keyword = tagsFilterInput.text().strip()
         if not keyword:
@@ -161,10 +159,8 @@ def on_show_tags_clicked(mainwindow: QMainWindow):
 
     tagsFilterInput.setPlaceholderText("搜索标签...")
     tagsFilterInput.textChanged.connect(_tag_refresh)
-    filtersLayout.addWidget(tagsFilterInput)
-    filterArea.setLayout(filtersLayout)
-    layout.addWidget(filterArea)
-    # TODO: 在下方展示标签
+    layout.addWidget(tagsFilterInput)
+    # 在下方展示标签
     tagsListViewer = QListWidget()
     tagsListViewer.addItems(filteredTags)
     tagsListViewer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
