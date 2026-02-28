@@ -36,6 +36,10 @@ scroll_area.setWidgetResizable(True)
 scroll_area.setAlignment(Qt.AlignCenter)
 # 创建 ImageViewer 作为容器
 container = ImageViewer(TARGET_DIR, mainwindow)
+container.clear_images()
+conn = sqlite3.connect(DB_PATH)
+cursor = conn.cursor()
+
 scroll_area.setWidget(container)
 top_layout.addWidget(scroll_area)
 #:imgViewer:加入布局
@@ -129,6 +133,16 @@ splitter.addWidget(filterFrame)
 # 设置分割器布局
 splitter.setSizes([480, 320])  # 上半500px，下半150px
 mainwindow.setCentralWidget(splitter)
+
+# 初始化container里的图片
+hashs = slots.on_search_clicked(tag_list_widget, nickname_input, result_label)
+for hashKey in hashs:
+    cursor.execute("SELECT * FROM files WHERE hash = ?", (hashKey,))
+    searchResult = cursor.fetchone()
+    # searchResult是以(hash, storageName, nickname, tags)格式的元组
+    # tags是一个json格式的数组
+    container.add_image(searchResult[0], searchResult[1], searchResult[2])
+conn.close()
 
 
 def main():

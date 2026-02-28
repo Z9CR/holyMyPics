@@ -288,10 +288,10 @@ def on_image_clicked(
     ##structure of imgInfoWindowRight:
     #   nickname: QLineEdit + submit: QPushButton; 20% of vh !DONE
     #   tags: QLineEdit + submit: QPushButton;     40% of vh !DONE
-    #   pathToFile: QLabel + copy: QPushButton;    10% of vh
-    #   hash: QLabel;                              10% of vh
-    #   size: QLabel;                              10% of vh
-    #   Finish: QPushButton;按下退出窗口           10% of vh
+    #   pathToFile: QLabel + copy: QPushButton;    10% of vh !DONE
+    #   hash: QLabel;                              10% of vh !DONE
+    #   size: QLabel;                              10% of vh !DONE
+    #   Finish: QPushBtn   + DeleteBtn;            10% of vh
     imgInfoWindowRightLayout = QVBoxLayout()
     # :右: nicknameArea
     nicknameArea = QWidget()
@@ -413,10 +413,68 @@ def on_image_clicked(
     pathToFileAreaLayout.addWidget(pathToFileHinter)
     pathToFileAreaLayout.addWidget(pathLabel)
     pathToFileAreaLayout.addWidget(copyPathBtn)
+    # :hashArea:
+    hashArea = QWidget()
+    hashAreaLayout = QHBoxLayout()
+    hashArea.setLayout(hashAreaLayout)
+    hashCode = QLabel("哈希代码 " + file_hash)
+    copyHashBtn = QPushButton("复制")
+    copyHashBtn.clicked.connect(lambda: pyperclip.copy(file_hash))
+    hashAreaLayout.addWidget(hashCode)
+    hashAreaLayout.addWidget(copyHashBtn)
+    # :size:
+    sizeArea = QWidget()
+    sizeAreaLayout = QHBoxLayout()
+    sizeArea.setLayout(sizeAreaLayout)
+    pathOfFile = os.path.join(TARGET_DIR, storage_name)
+
+    def convertSize(bytes_size):
+        units = ["Byte", "KiB", "MiB", "GiB", "TiB"]
+        index = 0
+        while bytes_size >= 1024 and index < len(units) - 1:
+            bytes_size /= 1024
+            index += 1
+        return f"{bytes_size:.2f} {units[index]}"
+
+    fileSize = os.path.getsize(pathOfFile)  # unit: bytes
+    fileSize = convertSize(fileSize)  # 现在是一个字符串 自带单位
+    sizeLabel = QLabel("文件大小 " + fileSize)
+    sizeAreaLayout.addWidget(sizeLabel)
+    # :functionBtns:
+    functionBtnsArea = QWidget()
+    functionBtnsAreaLayout = QHBoxLayout()
+    functionBtnsArea.setLayout(functionBtnsAreaLayout)
+    finishBtn = QPushButton("完成")
+    finishBtn.clicked.connect(imgInfoWindow.close)
+    deleteBtn = QPushButton("删除")
+
+    def on_deleteBtn_clicked():
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
+            oldProperties = cursor.fetchone()
+            # oldProperties: (hash,  storageName, nickname, tagsJson)
+            cursor.execute("DELETE FROM files WHERE hash = ?", (file_hash,))
+            filePath = os.path.join(TARGET_DIR, oldProperties[1])
+            os.remove(filePath)
+            conn.commit()
+            imgInfoWindow.close()
+        except Exception as e:
+            print(f"删除文件时异常:\n{e}")
+        finally:
+            conn.close()
+
+    deleteBtn.clicked.connect(on_deleteBtn_clicked)
+    functionBtnsAreaLayout.addWidget(finishBtn)
+    functionBtnsAreaLayout.addWidget(deleteBtn)
     # 加入组件到布局
     imgInfoWindowRightLayout.addWidget(nicknameArea)
     imgInfoWindowRightLayout.addWidget(tagsArea)
     imgInfoWindowRightLayout.addWidget(pathToFileArea)
+    imgInfoWindowRightLayout.addWidget(hashArea)
+    imgInfoWindowRightLayout.addWidget(sizeArea)
+    imgInfoWindowRightLayout.addWidget(functionBtnsArea)
     # :右: 设置布局
     imgInfoWindowRight.setLayout(imgInfoWindowRightLayout)
     # :右: 加入布局
