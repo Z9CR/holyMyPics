@@ -251,7 +251,7 @@ def on_image_clicked(
 ):
     """图片点击事件的槽函数"""
     print(f"图片被点击: hash={file_hash}, nickname={nickname}, storage={storage_name}")
-    # TODO: 弹出详情窗口
+    # 弹出详情窗口
     imgInfoWindow = QWidget()
     # 将imgInfoWindow作为mainwindow的成员以防止gc
     mainwindow.imgInfoWindow = imgInfoWindow
