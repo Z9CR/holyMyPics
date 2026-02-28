@@ -183,7 +183,9 @@ def on_show_tags_clicked(
     copy_selected_btn = QPushButton("复制所选")
     search_selected_btn = QPushButton("搜索所选")
 
-    # TODO: 添加傻逼槽函数
+    # DONE: 添加傻逼槽函数
+    # FUCKIT, from Feb to March, damn shit GUI!!!!
+    # I hate Qt, not [kju:t] any more
     def _copy_selected_btn_on_clicked():
         print("copy_selected_btn被点击")
         formatedTagStr = ""
