@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import pyperclip
 from typing import List
 from PySide6.QtWidgets import (
     QWidget,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from utils.widgets import *
 
 DB_PATH = "pics.db"
 
@@ -118,8 +120,14 @@ def on_search_clicked(
     return file_hashes  # 返回 hash 列表
 
 
-def on_show_tags_clicked(mainwindow: QMainWindow):
-    # TODO: 展示一个窗口，内部包含数据库里所有的标签
+def on_show_tags_clicked(
+    mainwindow: QMainWindow,
+    tag_list_widget: QListWidget,
+    nickname_input: QLineEdit,
+    result_label: QLabel,
+    container: ImageViewer,
+):
+    # 展示一个窗口，内部包含数据库里所有的标签
     print("show tags clicked")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -169,6 +177,65 @@ def on_show_tags_clicked(mainwindow: QMainWindow):
     # 创建字体对象, 设置字号
     tagsListViewer.setFont(QFont("", 16))
     layout.addWidget(tagsListViewer)
+    # 复制为文本 与 搜索所选的 按钮
+    operationButtonsArea = QWidget()
+    operationButtonsAreaLayout = QHBoxLayout()
+    copy_selected_btn = QPushButton("复制所选")
+    search_selected_btn = QPushButton("搜索所选")
+
+    # TODO: 添加傻逼槽函数
+    def _copy_selected_btn_on_clicked():
+        print("copy_selected_btn被点击")
+        formatedTagStr = ""
+        tagsList = tagsListViewer.selectedItems()
+        if not tagsList:
+            return
+        else:
+            for tag in tagsList:
+                formatedTagStr += tag.text()
+                formatedTagStr += ","
+        formatedTagStr = formatedTagStr[:-1]
+        pyperclip.copy(formatedTagStr)
+
+    def _search_selected_btn_on_clicked(
+        mainwindow: QMainWindow,
+        tag_list_widget: QListWidget,
+        nickname_input: QLineEdit,
+        result_label: QLabel,
+        container: ImageViewer,
+    ):
+        print("search_selected_btn被点击")
+        originTagList = tagsListViewer.selectedItems()
+        tagsList = []
+        for t in originTagList:
+            tagsList.append(t.text())
+        tag_list_widget.clear()
+        tag_list_widget.addItems(tagsList)
+        # 复用主窗口的search函数实现, 此函数返回获取到的文件的hash
+        hashs = on_search_clicked(tag_list_widget, nickname_input, result_label)
+        container.clear_images()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        for hashKey in hashs:
+            cursor.execute("SELECT * FROM files WHERE hash = ?", (hashKey,))
+            searchResult = cursor.fetchone()
+            # searchResult是以(hash, storageName, nickname, tags)格式的元组
+            # tags是一个json格式的数组
+            container.add_image(searchResult[0], searchResult[1], searchResult[2])
+        conn.close()
+
+    copy_selected_btn.clicked.connect(_copy_selected_btn_on_clicked)
+    search_selected_btn.clicked.connect(
+        lambda: _search_selected_btn_on_clicked(
+            mainwindow, tag_list_widget, nickname_input, result_label, container
+        )
+    )
+    # 把两个按钮加入到opteration....里
+    operationButtonsAreaLayout.addWidget(copy_selected_btn)
+    operationButtonsAreaLayout.addWidget(search_selected_btn)
+    # 加入operationButtonArea至布局
+    operationButtonsArea.setLayout(operationButtonsAreaLayout)
+    layout.addWidget(operationButtonsArea)
     # 防gc
     mainwindow._tagViewWindow = tagViewWindow
     tagViewWindow.show()

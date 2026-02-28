@@ -3,7 +3,6 @@ import utils.database as db
 import sys
 import utils.slots as slots
 import sqlite3
-from PIL import Image, ImageQt
 from utils.widgets import *
 from PySide6.QtWidgets import (
     QApplication,
@@ -17,7 +16,6 @@ from PySide6.QtWidgets import (
     QListWidget,
     QScrollArea,
     QMainWindow,
-    QWidgetAction,
 )
 from PySide6.QtCore import Qt
 
@@ -78,7 +76,11 @@ tag_list_widget.setMaximumHeight(150)  # 限制高度，避免占用太多空间
 left_layout.addWidget(tag_list_widget)
 # 显示所有标签
 show_all_tags_btn = QPushButton("显示所有标签")
-show_all_tags_btn.clicked.connect(lambda: slots.on_show_tags_clicked(mainwindow))
+show_all_tags_btn.clicked.connect(
+    lambda: slots.on_show_tags_clicked(
+        mainwindow, tag_list_widget, nickname_input, result_label, container
+    )
+)
 left_layout.addWidget(show_all_tags_btn)
 # 添加弹性空间，让组件靠上排列
 left_layout.addStretch()
