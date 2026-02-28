@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QListWidget,
     QScrollArea,
+    QMainWindow,
 )
 from PySide6.QtCore import Qt
 
@@ -23,7 +24,7 @@ DB_PATH = "pics.db"
 TARGET_DIR = "pics"
 # 图像显示
 app = QApplication(sys.argv)
-mainwindow = QWidget()
+mainwindow = QMainWindow()
 mainwindow.setWindowTitle("HolyMyPics")  # 设置窗口标题
 mainwindow.resize(800, 600)  # 设置窗口大小800x600
 splitter = QSplitter(Qt.Vertical)  # Qt.Vertical 表示垂直分割
@@ -119,11 +120,9 @@ horizontal_splitter.addWidget(filterRight)
 # 把水平分割器添加到 filterFrame 的布局中
 bottom_layout.addWidget(horizontal_splitter)
 splitter.addWidget(filterFrame)
-# 将分割器设置为主窗口的布局
-layout = QVBoxLayout(mainwindow)
-layout.addWidget(splitter)
 # 设置分割器布局
 splitter.setSizes([480, 320])  # 上半500px，下半150px
+mainwindow.setCentralWidget(splitter)
 
 
 def main():

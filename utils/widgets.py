@@ -1,9 +1,9 @@
 import os
 from PIL import Image, ImageQt
 from PySide6.QtWidgets import QLabel, QWidget, QGridLayout
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from typing import List, Callable
+from typing import List
 
 THUMBNAIL_SIZE = 128
 
