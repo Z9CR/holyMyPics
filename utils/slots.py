@@ -145,11 +145,23 @@ def on_show_tags_clicked(mainwindow: QMainWindow):
     filterArea = QWidget()
     filtersLayout = QHBoxLayout()
     tagsFilterInput = QLineEdit()
-    tagsFilterBtn = QPushButton("搜索标签")
-    # TODO: 为tagsFilterBtn添加槽函数
-    # TODO: 为tagsFIlterInput添加placehover
+
+    # TODO: 为tagsFIlterInput添加placehover和实时输入搜索
+    def _tag_refresh():
+        keyword = tagsFilterInput.text().strip()
+        if not keyword:
+            # 无关键字则显示全部
+            tagsListViewer.clear()
+            tagsListViewer.addItems(filteredTags)
+        else:
+            # 保留包含关键字的标签
+            filtered = [tag for tag in filteredTags if keyword in tag]
+            tagsListViewer.clear()
+            tagsListViewer.addItems(filtered)
+
+    tagsFilterInput.setPlaceholderText("搜索标签...")
+    tagsFilterInput.textChanged.connect(_tag_refresh)
     filtersLayout.addWidget(tagsFilterInput)
-    filtersLayout.addWidget(tagsFilterBtn)
     filterArea.setLayout(filtersLayout)
     layout.addWidget(filterArea)
     # TODO: 在下方展示标签
