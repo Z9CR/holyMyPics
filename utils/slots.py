@@ -1,7 +1,20 @@
 import sqlite3
+import json
 from typing import List
-from PySide6.QtWidgets import QListWidget, QLabel, QLineEdit
+from PySide6.QtWidgets import (
+    QWidget,
+    QListWidget,
+    QLabel,
+    QPushButton,
+    QLineEdit,
+    QMainWindow,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSizePolicy,
+    QAbstractItemView,
+)
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 DB_PATH = "pics.db"
 
@@ -103,6 +116,54 @@ def on_search_clicked(
         conn.close()
     print(f"~~~获取到的文件hash\n{file_hashes}\n~~~")
     return file_hashes  # 返回 hash 列表
+
+
+def on_show_tags_clicked(mainwindow: QMainWindow):
+    # TODO: 展示一个窗口，内部包含数据库里所有的标签
+    print("show tags clicked")
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT tags FROM files")
+    tagsJson = cursor.fetchall()
+    # tagsJson 为(tags, )样式的元组
+    # allTheTags 为 List[str], 包含所有的标签
+    filteredTags = []
+    for tagStr in tagsJson:
+        tagArr = json.loads(tagStr[0])
+        if not tagArr:
+            continue
+        for tag in tagArr:
+            if tag not in filteredTags:
+                filteredTags.append(tag)
+    tagViewWindow = QWidget()
+    tagViewWindow.setWindowTitle("选择标签")
+    tagViewWindow.resize(480, 360)
+    # 设置为垂直布局
+    layout = QVBoxLayout()
+    tagViewWindow.setLayout(layout)
+    # 检索器
+    filterArea = QWidget()
+    filtersLayout = QHBoxLayout()
+    tagsFilterInput = QLineEdit()
+    tagsFilterBtn = QPushButton("搜索标签")
+    # TODO: 为tagsFilterBtn添加槽函数
+    # TODO: 为tagsFIlterInput添加placehover
+    filtersLayout.addWidget(tagsFilterInput)
+    filtersLayout.addWidget(tagsFilterBtn)
+    filterArea.setLayout(filtersLayout)
+    layout.addWidget(filterArea)
+    # TODO: 在下方展示标签
+    tagsListViewer = QListWidget()
+    tagsListViewer.addItems(filteredTags)
+    tagsListViewer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    # 使可多选
+    tagsListViewer.setSelectionMode(QAbstractItemView.ExtendedSelection)
+    # 创建字体对象, 设置字号
+    tagsListViewer.setFont(QFont("", 16))
+    layout.addWidget(tagsListViewer)
+    # 防gc
+    mainwindow._tagViewWindow = tagViewWindow
+    tagViewWindow.show()
 
 
 def on_image_clicked(file_hash: str, nickname: str, storage_name: str):

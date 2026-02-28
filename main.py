@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QScrollArea,
     QMainWindow,
+    QWidgetAction,
 )
 from PySide6.QtCore import Qt
 
@@ -75,6 +76,10 @@ left_layout.addWidget(QLabel("已添加的标签:"))
 tag_list_widget = QListWidget()
 tag_list_widget.setMaximumHeight(150)  # 限制高度，避免占用太多空间
 left_layout.addWidget(tag_list_widget)
+# 显示所有标签
+show_all_tags_btn = QPushButton("显示所有标签")
+show_all_tags_btn.clicked.connect(lambda: slots.on_show_tags_clicked(mainwindow))
+left_layout.addWidget(show_all_tags_btn)
 # 添加弹性空间，让组件靠上排列
 left_layout.addStretch()
 # 左半边子组件加入布局
