@@ -91,7 +91,7 @@ class ImageViewer(QWidget):
         image_path = os.path.join(self.target_dir, storage_name)
 
         # 创建图片标签
-        label = ImageLabel(file_hash, nickname, storage_name, self.mainwindow, self)
+        label = ImageLabel(file_hash, nickname, storage_name, self.mainwindow)
 
         # 加载图片
         if not label.load_image(image_path):
