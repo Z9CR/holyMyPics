@@ -58,13 +58,13 @@ def getHashOf(filepath: str, chunkSize=8192):
         return -1
 
 
-def addFile(filepath: str, nickname: str, tagsList: List[str]) -> bool:
+def addFile(filepath: str, nickname: str, tagsList: List[str]) -> str:
     """
     把filepath所指向的文件加入到文件库里
     @param filepath: 字符串, 文件的路径
     @param nickname: 字符串, 录入的昵称
     @param tagsList: 字符串数组, 将要打上的tag
-    @return: bool类型, True为正常, False为异常
+    @return: filehash, 字符串
     """
     if not ensureFile(filepath):
         print(f"{filepath} 非文件!")
@@ -81,7 +81,7 @@ def addFile(filepath: str, nickname: str, tagsList: List[str]) -> bool:
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO files (hash, storageName, nickname, tags) VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO files (hash, storageName, nickname, tags) VALUES (?, ?, ?, ?)",
             (filehash, storageName, nickname, tagsJson),
         )
         conn.commit()

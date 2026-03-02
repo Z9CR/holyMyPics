@@ -123,8 +123,15 @@ right_layout.addWidget(search_btn)
 result_label = QLabel("找到 0 个文件")
 result_label.setStyleSheet("font-weight: bold; color: #2ecc71;")  # 可选样式
 right_layout.addWidget(result_label)
-# 添加弹性空间，让组件靠上排列
 right_layout.addStretch()
+# 添加文件按钮
+addfile_btn = QPushButton("添加文件")
+addfile_btn.clicked.connect(
+    lambda: slots.on_addfile_btn_clicked(
+        mainwindow, tag_list_widget, nickname_input, result_label, container
+    )
+)
+right_layout.addWidget(addfile_btn)
 # 子组件加入布局
 horizontal_splitter.addWidget(filterRight)
 # 把水平分割器添加到 filterFrame 的布局中

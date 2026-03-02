@@ -2,6 +2,7 @@ import sqlite3
 import os
 import json
 import pyperclip
+import utils.fileworks as fw
 from typing import List
 from PySide6.QtWidgets import (
     QWidget,
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QAbstractItemView,
+    QFileDialog,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QPixmap
@@ -253,6 +256,7 @@ def on_image_clicked(
     print(f"图片被点击: hash={file_hash}, nickname={nickname}, storage={storage_name}")
     # 弹出详情窗口
     imgInfoWindow = QWidget()
+    imgInfoWindow.setWindowTitle("文件详情")
     # 将imgInfoWindow作为mainwindow的成员以防止gc
     mainwindow.imgInfoWindow = imgInfoWindow
     # 左图片右信息
@@ -482,3 +486,107 @@ def on_image_clicked(
     # show
     imgInfoWindow.setLayout(imgInfoWindowLayout)
     imgInfoWindow.show()
+
+
+def on_addfile_btn_clicked(
+    mainwindow: QMainWindow,
+    tag_list_widget: QListWidget,
+    nickname_input: QLineEdit,
+    result_label: QLabel,
+    container: ImageViewer,
+):
+    addFileWindow = QWidget()
+    addFileWindowLayout = QVBoxLayout()
+    addFileWindow.setLayout(addFileWindowLayout)
+    addFileWindow.setWindowTitle("添加文件")
+    addFileWindow.resize(580, 360)
+    # 子组件
+    # 设置名称
+    setNicknameArea = QWidget()
+    setNicknameAreaLayout = QHBoxLayout()
+    setNicknameArea.setLayout(setNicknameAreaLayout)
+    setNicknameAreaLayout.addWidget(QLabel("设置名称:"))
+    setNicknameInput = QLineEdit()
+    setNicknameInput.setPlaceholderText("输入名称")
+    setNicknameAreaLayout.addWidget(setNicknameInput)
+    # 设置标签
+    setTagsArea = QWidget()
+    setTagsAreaLayout = QHBoxLayout()
+    setTagsArea.setLayout(setTagsAreaLayout)
+    setTagsAreaLayout.addWidget(QLabel("设置标签"))
+    setTagsInput = QLineEdit()
+    setTagsInput.setPlaceholderText("输入标签 以' , '分割")
+    setTagsAreaLayout.addWidget(setTagsInput)
+    # 选择路径
+    selectPathArea = QWidget()
+    selectPathAreaLayout = QHBoxLayout()
+    selectPathArea.setLayout(selectPathAreaLayout)
+    # 添加选择路径组件/窗口
+    selectPathAreaLayout.addWidget(QLabel("文件路径"))
+    selectPathsBtn = QPushButton("选择路径")
+
+    insubmitedFilePath = None
+
+    def on_selectPathsBtn_clicked(parent: QWidget):
+        nonlocal insubmitedFilePath
+        selectedPath, _ = QFileDialog.getOpenFileName(
+            parent,
+            "选择图片",
+            ".",
+            "图片文件 (*.jpg *.jpeg *.png *.gif *.bmp *.webp)",
+            None,
+            QFileDialog.DontUseNativeDialog,
+        )
+        insubmitedFilePath = selectedPath
+
+    selectPathsBtn.clicked.connect(lambda: on_selectPathsBtn_clicked(addFileWindow))
+    selectPathAreaLayout.addWidget(selectPathsBtn)
+    # 提交按钮
+    submitBtn = QPushButton("提交文件")
+
+    def on_submitBtn_clicked(
+        tag_list_widget: QListWidget,
+        nickname_input: QLineEdit,
+        result_label: QLabel,
+        container: ImageViewer,
+    ):
+        tags = setTagsInput.text().replace(" ", "").split(",")
+        nickname = setNicknameInput.text()
+        if not tags or not nickname or not insubmitedFilePath:
+            # 两项里面有任意一项为空
+            QMessageBox.critical(
+                addFileWindow,
+                "无法添加文件",
+                "标签, 名称或文件不存在",
+                QMessageBox.Ok,
+                defaultButton=QMessageBox.Ok,
+            )
+            return
+        else:
+            fw.addFile(insubmitedFilePath, nickname, tags)
+        hashs = on_search_clicked(tag_list_widget, nickname_input, result_label)
+        # 清空当前预览
+
+        container.clear_images()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        for hashKey in hashs:
+            cursor.execute("SELECT * FROM files WHERE hash = ?", (hashKey,))
+            searchResult = cursor.fetchone()
+            # searchResult是以(hash, storageName, nickname, tags)格式的元组
+            # tags是一个json格式的数组
+            container.add_image(searchResult[0], searchResult[1], searchResult[2])
+        conn.close()
+
+    submitBtn.clicked.connect(
+        lambda: on_submitBtn_clicked(
+            tag_list_widget, nickname_input, result_label, container
+        )
+    )
+    # 展示
+    addFileWindowLayout.addWidget(selectPathArea)
+    addFileWindowLayout.addWidget(setNicknameArea)
+    addFileWindowLayout.addWidget(setTagsArea)
+    addFileWindowLayout.addWidget(submitBtn)
+    addFileWindow.show()
+    mainwindow.addFileWindow = addFileWindow
