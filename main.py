@@ -157,7 +157,7 @@ conn.close()
 
 
 def main():
-    mainwindow.show()
+    mainwindow.showMaximized()
     sys.exit(app.exec())
 
 

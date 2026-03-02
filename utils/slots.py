@@ -213,12 +213,15 @@ def on_show_tags_clicked(
     # allTheTags 为 List[str], 包含所有的标签
     filteredTags = []
     for tagStr in tagsJson:
-        tagArr = json.loads(tagStr[0])
-        if not tagArr:
+        if not tagStr[0]:
             continue
-        for tag in tagArr:
-            if tag not in filteredTags:
-                filteredTags.append(tag)
+        else:
+            tagArr = json.loads(tagStr[0])
+            if not tagArr:
+                continue
+            for tag in tagArr:
+                if tag not in filteredTags:
+                    filteredTags.append(tag)
     tagViewWindow = QWidget()
     tagViewWindow.setWindowTitle("选择标签")
     tagViewWindow.resize(480, 360)
@@ -374,7 +377,19 @@ def on_image_clicked(
 
     nicknameHinter = QLabel("更改名称")
     nicknameModifier = QLineEdit()
-    nicknameModifier.setText(nickname)
+    try:
+        conn_nick = sqlite3.connect(DB_PATH)
+        cur_nick = conn_nick.cursor()
+        cur_nick.execute("SELECT nickname FROM files WHERE hash = ?", (file_hash,))
+        row_nick = cur_nick.fetchone()
+        if row_nick and row_nick[0]:
+            nickname = row_nick[0]  # 用数据库中的值覆盖参数
+        conn_nick.close()
+    except Exception as e:
+        print(f"查询昵称失败: {e}")
+    finally:
+        print(f"设置昵称: '{nickname}'")
+        nicknameModifier.setText(nickname)
     nicknameModifier.setPlaceholderText("输入新的名称")
     nicknameModifierSubmiter = QPushButton("提交")
 
@@ -416,17 +431,18 @@ def on_image_clicked(
         _tmpConn = sqlite3.connect(DB_PATH)
         _tmpCursor = _tmpConn.cursor()
         _tmpCursor.execute("SELECT * FROM files WHERE hash = ?", (file_hash,))
-        _tmpJsonTag = _tmpCursor.fetchone()[3]
-        _tmpTagsList = json.loads(_tmpJsonTag)
-        if not _tmpTagsList:
-            raise
-        tagsStr = ""
-        for t in _tmpTagsList:
-            tagsStr += t
-            tagsStr += ","
-        tagsStr = tagsStr[:-1]
-        print(tagsStr)
+        _row = _tmpCursor.fetchone()
+        if _row is None:
+            raise Exception("文件记录不存在")
+        _tmpJsonTag = _row[3]
+        # 处理空字符@s
+        if _tmpJsonTag and _tmpJsonTag.strip():
+            _tmpTagsList = json.loads(_tmpJsonTag)
+        else:
+            _tmpTagsList = []
+        tagsStr = ",".join(_tmpTagsList)
         tagsModifier.setText(tagsStr)
+        _tmpTagsList = json.loads(_tmpJsonTag)
     except Exception as e:
         print(f"获取tags遇到错误:\n{e}")
     finally:
@@ -572,7 +588,25 @@ def on_image_clicked(
 
     deleteBtn.clicked.connect(on_deleteBtn_clicked)
     finishBtn = QPushButton("完成")
-    finishBtn.clicked.connect(imgInfoWindow.close)
+
+    def on_finishBtn_clicked():
+        new_nick = nicknameModifier.text()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE files SET nickname = ? WHERE hash = ?", (new_nick, file_hash)
+        )
+        # 更新标签
+        new_tags = tagsModifier.text().replace(" ", "").split(",")
+        new_tags_json = json.dumps(new_tags)
+        cursor.execute(
+            "UPDATE files SET tags = ? WHERE hash = ?", (new_tags_json, file_hash)
+        )
+        conn.commit()
+        conn.close()
+        imgInfoWindow.close()
+
+    finishBtn.clicked.connect(lambda: on_finishBtn_clicked())
     functionBtnsAreaLayout.addWidget(copyImgBtn)
     functionBtnsAreaLayout.addWidget(openImgBtn)
     functionBtnsAreaLayout.addWidget(openImgDirBtn)
