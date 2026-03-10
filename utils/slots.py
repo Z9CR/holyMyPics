@@ -538,7 +538,7 @@ def on_image_clicked(
     openImgDirBtn = QPushButton("打开所在目录")
     openImgDirBtn.clicked.connect(lambda: openFileDir(filePath))
     openImgBtn = QPushButton("打开图像")
-    openImgDirBtn.clicked.connect(lambda: openImgWithDefaultViewer(filePath))
+    openImgBtn.clicked.connect(lambda: openImgWithDefaultViewer(filePath))
     copyImgBtn.clicked.connect(lambda: copyToClipboard(filePath))
     deleteBtn = QPushButton("删除图像")
 
